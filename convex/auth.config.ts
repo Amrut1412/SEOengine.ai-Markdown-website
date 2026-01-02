@@ -1,0 +1,22 @@
+// const clientId = process.env.WORKOS_CLIENT_ID || "client_placeholder";
+const clientId = "client_placeholder";
+
+const authConfig = {
+  providers: [
+    {
+      type: "customJwt",
+      issuer: `https://api.workos.com/`,
+      algorithm: "RS256",
+      jwks: `https://api.workos.com/sso/jwks/${clientId}`,
+      applicationID: clientId,
+    },
+    {
+      type: "customJwt",
+      issuer: `https://api.workos.com/user_management/${clientId}`,
+      algorithm: "RS256",
+      jwks: `https://api.workos.com/sso/jwks/${clientId}`,
+    },
+  ],
+};
+
+export default authConfig;
