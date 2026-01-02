@@ -328,12 +328,12 @@ export interface SiteConfig {
 // Customize this for your site
 export const siteConfig: SiteConfig = {
   // Basic site info
-  name: 'markdown "sync" framework',
-  title: "markdown sync framework",
+  name: 'SEOengine AI',
+  title: "SEOengine AI – Markdown Platform",
   // Optional logo/header image (place in public/images/, set to null to hide)
   logo: "/images/logo.svg",
   intro: null, // Set in Home.tsx to allow JSX with links
-  bio: `Your content is instantly available to browsers, LLMs, and AI agents.`,
+  bio: `AI-first markdown publishing platform for SEO and LLM discovery`,
 
   // Font family configuration
   // Options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono)
@@ -561,7 +561,7 @@ export const siteConfig: SiteConfig = {
     socialLinks: [
       {
         platform: "github",
-        url: "https://github.com/waynesutton/markdown-site",
+        url: "https://github.com/Amrut1412/SEOengine.ai-Markdown-website",
       },
       { platform: "twitter", url: "https://x.com/waynesutton" },
       { platform: "linkedin", url: "https://www.linkedin.com/in/waynesutton/" },

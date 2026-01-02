@@ -275,8 +275,8 @@ async function syncPosts() {
   console.log(`Found ${markdownFiles.length} markdown files\n`);
 
   if (markdownFiles.length === 0) {
-    console.log("No markdown files found. Creating sample post...");
-    createSamplePost();
+    console.log("⚠️ No markdown posts found. Add files to content/blog/");
+  
     // Re-read files after creating sample
     const newFiles = getAllMarkdownFiles();
     markdownFiles.push(...newFiles);
@@ -344,49 +344,7 @@ async function syncPosts() {
 }
 
 // Create a sample post if none exist
-function createSamplePost() {
-  const samplePost = `---
-title: "Hello World"
-description: "Welcome to my blog. This is my first post."
-date: "${new Date().toISOString().split("T")[0]}"
-slug: "hello-world"
-published: true
-tags: ["introduction", "blog"]
----
 
-# Hello World
-
-Welcome to my blog! This is my first post.
-
-## What to Expect
-
-I'll be writing about:
-
-- **Development**: Building applications with modern tools
-- **AI**: Exploring artificial intelligence and machine learning
-- **Productivity**: Tips and tricks for getting things done
-
-## Code Example
-
-Here's a simple TypeScript example:
-
-\`\`\`typescript
-function greet(name: string): string {
-  return \`Hello, \${name}!\`;
-}
-
-console.log(greet("World"));
-\`\`\`
-
-## Stay Tuned
-
-More posts coming soon. Thanks for reading!
-`;
-
-  const filePath = path.join(CONTENT_DIR, "hello-world.md");
-  fs.writeFileSync(filePath, samplePost);
-  console.log(`Created sample post: ${filePath}`);
-}
 
 // Generate static markdown file in public/raw/ directory
 function generateRawMarkdownFile(

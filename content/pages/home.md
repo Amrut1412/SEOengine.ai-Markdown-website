@@ -9,7 +9,7 @@ textAlign: "left"
 
 An open-source publishing framework built for AI agents and developers to ship **[docs](/docs)**, or **[blogs](/blog)** or **[websites](/)**.
 
-Write markdown, sync from the terminal. **[Fork it](https://github.com/waynesutton/markdown-site)**, customize it, ship it.
+Write markdown, sync from the terminal. **[Fork it](https://github.com/Amrut1412/SEOengine.ai-Markdown-website)**, customize it, ship it.
 
 <!-- This is a comments
 Your content is instantly available to browsers, LLMs, and AI

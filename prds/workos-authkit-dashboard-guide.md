@@ -1,6 +1,6 @@
 # Adding WorkOS AuthKit to markdown-site (Dashboard Only)
 
-A beginner-friendly, step-by-step guide for adding WorkOS AuthKit authentication to only the `/dashboard` page of your [markdown-site](https://github.com/waynesutton/markdown-site) project. The main site remains public—no login required.
+A beginner-friendly, step-by-step guide for adding WorkOS AuthKit authentication to only the `/dashboard` page of your [markdown-site](https://github.com/Amrut1412/SEOengine.ai-Markdown-website) project. The main site remains public—no login required.
 
 ---
 
@@ -54,14 +54,14 @@ markdown-site/
 Before starting, make sure you have:
 
 - [ ] Node.js 18 or higher installed
-- [ ] A working [markdown-site](https://github.com/waynesutton/markdown-site) project
+- [ ] A working [markdown-site](https://github.com/Amrut1412/SEOengine.ai-Markdown-website) project
 - [ ] A Convex account and project already set up
 - [ ] Your Convex development server running (`npx convex dev`)
 
 **Don't have markdown-site yet?** Clone it first:
 
 ```bash
-git clone https://github.com/waynesutton/markdown-site.git
+git clone https://github.com/Amrut1412/SEOengine.ai-Markdown-website.git
 cd markdown-site
 npm install
 npx convex dev

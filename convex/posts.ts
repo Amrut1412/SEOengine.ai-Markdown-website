@@ -555,12 +555,7 @@ export const syncPostsPublic = mutation({
     }
 
     // Delete posts that no longer exist in the repo
-    for (const existing of existingPosts) {
-      if (!incomingSlugs.has(existing.slug)) {
-        await ctx.db.delete(existing._id);
-        deleted++;
-      }
-    }
+   
 
     return { created, updated, deleted };
   },

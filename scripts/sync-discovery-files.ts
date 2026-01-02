@@ -27,7 +27,6 @@ if (isProduction) {
   dotenv.config({ path: ".env.local" });
   console.log("Syncing discovery files for DEVELOPMENT...\n");
 }
-dotenv.config();
 
 const PROJECT_ROOT = process.cwd();
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
@@ -120,21 +119,26 @@ function loadSiteConfig(): SiteConfigData {
 
 // Get site URL from environment or config
 function getSiteUrl(): string {
-  return (
-    process.env.SITE_URL || process.env.VITE_SITE_URL || "https://markdown.fast"
-  );
+  if (!process.env.SITE_URL && !process.env.VITE_SITE_URL) {
+    console.warn("⚠️ SITE_URL not set");
+  }
+  return process.env.SITE_URL || process.env.VITE_SITE_URL || "";
 }
 
+
 // Build GitHub URL from repo config or fallback
-function getGitHubUrl(siteConfig: SiteConfigData): string {
+function getGitHubUrl(siteConfig: SiteConfigData): string | undefined {
   if (siteConfig.gitHubRepo) {
     return `https://github.com/${siteConfig.gitHubRepo.owner}/${siteConfig.gitHubRepo.repo}`;
   }
-  return (
-    process.env.GITHUB_REPO_URL ||
-    "https://github.com/waynesutton/markdown-site"
-  );
+
+  if (process.env.GITHUB_REPO_URL) {
+    return process.env.GITHUB_REPO_URL;
+  }
+
+  return undefined; // 🚫 NO fallback
 }
+
 
 // Update CLAUDE.md with current status
 function updateClaudeMd(
@@ -237,7 +241,7 @@ function generateLlmsTxt(
 - Description: ${siteConfig.description || siteConfig.bio} Write markdown, sync from the terminal. Your content is instantly available to browsers, LLMs, and AI agents. Built on Convex and Netlify.
 - Topics: Markdown, Convex, React, TypeScript, Netlify, Open Source, AI, LLM, AEO, GEO
 - Total Posts: ${postCount}
-${latestPostDate ? `- Latest Post: ${latestPostDate}\n` : ""}- GitHub: ${githubUrl}
+${latestPostDate ? `- Latest Post: ${latestPostDate}\n` : ""}${githubUrl ? `- GitHub: ${githubUrl}` : ""}
 
 # API Endpoints
 
@@ -304,7 +308,7 @@ Each post contains:
 - Content: Markdown with frontmatter
 
 # Links
-- GitHub: ${githubUrl}
+- ${githubUrl ? `- GitHub: ${githubUrl}\n` : ""}- Convex: https://convex.dev
 - Convex: https://convex.dev
 - Netlify: https://netlify.com
 `;
@@ -333,9 +337,10 @@ async function syncDiscoveryFiles() {
   console.log(`Site: ${siteConfig.name}`);
   console.log(`Title: ${siteConfig.title}`);
   console.log(`URL: ${siteUrl}`);
-  if (siteConfig.gitHubRepo) {
-    console.log(`GitHub: ${getGitHubUrl(siteConfig)}`);
-  }
+  const githubUrl = getGitHubUrl(siteConfig);
+if (githubUrl) {
+  console.log(`GitHub: ${githubUrl}`);
+}
   console.log();
 
   // Query Convex for content statistics

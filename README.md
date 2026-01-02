@@ -585,8 +585,8 @@ Set these in [Convex Dashboard](https://dashboard.convex.dev) > Settings > Envir
 
 ## Source
 
-Fork this project: [github.com/waynesutton/markdown-site](https://github.com/waynesutton/markdown-site)
+Fork this project: [github.com/waynesutton/markdown-site](https://github.com/Amrut1412/SEOengine.ai-Markdown-website)
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/waynesutton/markdown-site/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/Amrut1412/SEOengine.ai-Markdown-website/blob/main/LICENSE).

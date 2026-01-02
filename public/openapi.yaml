@@ -6,7 +6,7 @@ info:
     All endpoints return JSON by default. Use format=md for raw markdown.
   version: 1.6.0
   contact:
-    url: https://github.com/waynesutton/markdown-site
+    url: https://github.com/Amrut1412/SEOengine.ai-Markdown-website
 
 servers:
   - url: https://www.markdown.fast
