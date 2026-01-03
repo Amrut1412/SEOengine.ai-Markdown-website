@@ -14,7 +14,8 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vite/client", "@emotion/react/types/css-prop"]
   },
   "include": ["src", "scripts"],
   "references": [{ "path": "./tsconfig.node.json" }]

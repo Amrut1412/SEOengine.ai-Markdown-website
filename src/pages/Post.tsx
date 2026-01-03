@@ -36,7 +36,10 @@ export default function Post({
   const navigate = useNavigate();
   const location = useLocation();
   const { setHeadings, setActiveId } = useSidebar();
-  
+
+  // Check if this is a raw markdown request
+  const isRawRequest = location.pathname.startsWith("/raw/") || (routeSlug && routeSlug.startsWith("raw/"));
+
   // Normalize slug: remove /raw/ prefix and .md extension if present
   const normalizeSlug = (slug: string | undefined): string | undefined => {
     if (!slug) return undefined;
@@ -46,7 +49,7 @@ export default function Post({
     normalized = normalized.endsWith(".md") ? normalized.slice(0, -3) : normalized;
     return normalized;
   };
-  
+
   // Use prop slug if provided (for homepage), otherwise use route slug
   const slug = normalizeSlug(propSlug || routeSlug);
   
@@ -211,6 +214,80 @@ export default function Post({
     return null;
   }
 
+  // Display raw markdown for /raw/ routes
+  if (isRawRequest) {
+    const content = page?.content || post?.content;
+    const title = page?.title || post?.title;
+
+    if (!content) {
+      return (
+        <div className="raw-markdown-container">
+          <pre>Content not found</pre>
+        </div>
+      );
+    }
+
+    // Get current theme from DOM
+    const theme = document.documentElement.getAttribute('data-theme') || 'tan';
+
+    return (
+      <div className="raw-markdown-container">
+        <style>{`
+          .raw-markdown-container {
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            min-height: 100vh;
+          }
+          [data-theme="dark"] .raw-markdown-container {
+            background: #1a1a1a;
+          }
+          [data-theme="light"] .raw-markdown-container {
+            background: #ffffff;
+          }
+          [data-theme="tan"] .raw-markdown-container {
+            background: #f0ece4;
+          }
+          [data-theme="cloud"] .raw-markdown-container {
+            background: #f5f5f5;
+          }
+          .raw-markdown-container pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+          }
+          [data-theme="dark"] .raw-markdown-container pre {
+            color: #d4d4d4;
+            background: #0d0d0d;
+            border-color: rgba(255,255,255,0.1);
+          }
+          [data-theme="light"] .raw-markdown-container pre {
+            color: #24292e;
+            background: #f6f8fa;
+            border-color: rgba(0,0,0,0.15);
+          }
+          [data-theme="tan"] .raw-markdown-container pre {
+            color: #1a1a1a;
+            background: #e8e4dc;
+            border-color: rgba(0,0,0,0.08);
+          }
+          [data-theme="cloud"] .raw-markdown-container pre {
+            color: #24292e;
+            background: #ffffff;
+            border-color: rgba(0,0,0,0.1);
+          }
+        `}</style>
+        <pre>{content}</pre>
+      </div>
+    );
+  }
+
   // If it's a static page, render simplified view
   if (page) {
     // Extract headings for sidebar TOC (show TOC for any page with headings)
@@ -223,6 +300,7 @@ export default function Post({
     const hasOnlyRightSidebar = hasRightSidebar && !hasLeftSidebar;
 
     return (
+      <>
       <div className={`post-page ${hasAnySidebar ? "post-page-with-sidebar" : ""}`}>
         <nav className={`post-nav ${hasAnySidebar ? "post-nav-with-sidebar" : ""}`}>
           {/* Hide back-button when sidebars are enabled or when used as homepage */}
@@ -321,11 +399,7 @@ export default function Post({
                 <NewsletterSignup source="post" postSlug={page.slug} />
               )}
 
-            {/* Footer - shown inside article at bottom for pages */}
-            {siteConfig.footer.enabled && 
-             (page.showFooter !== undefined ? page.showFooter : siteConfig.footer.showOnPages) && (
-              <Footer content={page.footer} />
-            )}
+          
 
             {/* Social footer - shown inside article at bottom for pages */}
             {siteConfig.socialFooter?.enabled && 
@@ -344,6 +418,9 @@ export default function Post({
           )}
         </div>
       </div>
+      
+      <Footer />
+      </>
     );
   }
 

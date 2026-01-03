@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ConvexReactClient, ConvexProvider } from "convex/react";
 import { ThemeProvider } from "./context/ThemeContext";
 import { FontProvider } from "./context/FontContext";
+import { ChakraProviderWrapper } from "./providers/ChakraProvider";
 import { isWorkOSConfigured } from "./utils/workos";
 import "./styles/global.css";
 
@@ -28,15 +29,17 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <ThemeProvider>
         <FontProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            {isWorkOSConfigured ? (
-              <AppWithWorkOS convex={convex} />
-            ) : (
-              <ConvexProvider client={convex}>
-                <App />
-              </ConvexProvider>
-            )}
-          </Suspense>
+          <ChakraProviderWrapper>
+            <Suspense fallback={<LoadingFallback />}>
+              {isWorkOSConfigured ? (
+                <AppWithWorkOS convex={convex} />
+              ) : (
+                <ConvexProvider client={convex}>
+                  <App />
+                </ConvexProvider>
+              )}
+            </Suspense>
+          </ChakraProviderWrapper>
         </FontProvider>
       </ThemeProvider>
     </BrowserRouter>

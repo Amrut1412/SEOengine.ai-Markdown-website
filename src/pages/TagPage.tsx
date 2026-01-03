@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import PostList from "../components/PostList";
+import LoadMoreButton from "../components/Pagination/LoadMoreButton";
+import PostCountIndicator from "../components/Pagination/PostCountIndicator";
+import siteConfig from "../config/siteConfig";
 import { ArrowLeft, Tag } from "lucide-react";
 
 // Local storage key for tag page view mode preference
 const TAG_VIEW_MODE_KEY = "tag-view-mode";
 
 // Tag page component
-// Displays all posts that have a specific tag
+// Displays all posts that have a specific tag (with pagination)
 export default function TagPage() {
   const { tag } = useParams<{ tag: string }>();
   const navigate = useNavigate();
@@ -17,9 +20,36 @@ export default function TagPage() {
   // Decode the URL-encoded tag
   const decodedTag = tag ? decodeURIComponent(tag) : "";
 
-  // Fetch posts with this tag from Convex
-  const posts = useQuery(
-    api.posts.getPostsByTag,
+  // Pagination state
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [allPosts, setAllPosts] = useState<any[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Check if pagination is enabled (disabled for tag pages for now)
+  const isPaginationEnabled = false; // siteConfig.pagination?.enabled ?? false;
+  const postsPerPage = siteConfig.pagination?.postsPerPage ?? 9;
+
+  // Fetch paginated posts with this tag from Convex
+  const paginatedPostsResult = useQuery(
+    api.posts.getPostsByTagPaginated,
+    decodedTag
+      ? cursor
+        ? {
+            tag: decodedTag,
+            cursor,
+            limit: postsPerPage,
+          }
+        : {
+            tag: decodedTag,
+            limit: postsPerPage,
+          }
+      : "skip",
+  );
+
+  // Fetch total count of posts for this tag
+  const tagPostsCount = useQuery(
+    api.posts.getPostsByTagCount,
     decodedTag ? { tag: decodedTag } : "skip",
   );
 
@@ -49,6 +79,37 @@ export default function TagPage() {
     localStorage.setItem(TAG_VIEW_MODE_KEY, newMode);
   };
 
+  // Update posts list when paginated data loads
+  useEffect(() => {
+    if (paginatedPostsResult) {
+      if (cursor === undefined) {
+        // Initial load - replace all posts
+        setAllPosts(paginatedPostsResult.posts);
+      } else {
+        // Load more - append posts
+        setAllPosts((prev) => [...prev, ...paginatedPostsResult.posts]);
+      }
+      setHasMore(paginatedPostsResult.hasMore);
+      setIsLoadingMore(false);
+    }
+  }, [paginatedPostsResult, cursor]);
+
+  // Reset pagination when tag changes
+  useEffect(() => {
+    setCursor(undefined);
+    setAllPosts([]);
+    setIsLoadingMore(false);
+    setHasMore(true);
+  }, [decodedTag]);
+
+  // Load more posts handler
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore && paginatedPostsResult?.nextCursor) {
+      setIsLoadingMore(true);
+      setCursor(paginatedPostsResult.nextCursor);
+    }
+  }, [isLoadingMore, hasMore, paginatedPostsResult?.nextCursor]);
+
   // Update page title
   useEffect(() => {
     if (decodedTag) {
@@ -60,7 +121,7 @@ export default function TagPage() {
   }, [decodedTag]);
 
   // Handle not found tag
-  if (posts !== undefined && posts.length === 0) {
+  if (allPosts.length === 0 && paginatedPostsResult !== undefined) {
     return (
       <div className="tag-page">
         <nav className="post-nav">
@@ -106,7 +167,7 @@ export default function TagPage() {
             </p>
           </div>
           {/* View toggle button */}
-          {posts !== undefined && posts.length > 0 && (
+          {allPosts.length > 0 && (
             <button
               className="view-toggle-button"
               onClick={toggleViewMode}
@@ -154,8 +215,26 @@ export default function TagPage() {
 
       {/* Tag posts section */}
       <section className="tag-posts">
-        {posts === undefined ? null : (
-          <PostList posts={posts} viewMode={viewMode} />
+        {allPosts.length === 0 ? null : (
+          <>
+            {/* Post count indicator - only show when pagination is enabled */}
+            {isPaginationEnabled && tagPostsCount !== undefined && (
+              <PostCountIndicator
+                currentCount={allPosts.length}
+                totalCount={tagPostsCount}
+                label="posts"
+              />
+            )}
+            <PostList posts={allPosts} viewMode={viewMode} />
+            {/* Load More Button - only show when pagination is enabled */}
+            {isPaginationEnabled && (
+              <LoadMoreButton
+                onClick={handleLoadMore}
+                loading={isLoadingMore}
+                hasMore={hasMore}
+              />
+            )}
+          </>
         )}
       </section>
     </div>

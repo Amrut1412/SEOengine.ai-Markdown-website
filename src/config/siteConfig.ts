@@ -77,8 +77,8 @@ export interface GitHubRepoConfig {
 
 // Font family configuration
 // Controls the default font family for the entire site
-// default font family options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono)
-export type FontFamily = "serif" | "sans" | "monospace";
+// default font family options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono), "jakarta" (Plus Jakarta Sans)
+export type FontFamily = "serif" | "sans" | "monospace" | "jakarta";
 
 // Right sidebar configuration
 // Shows CopyPageDropdown in a right sidebar on posts/pages at 1135px+ viewport width
@@ -203,6 +203,14 @@ export interface ImageLightboxConfig {
   enabled: boolean; // Global toggle for image lightbox feature
 }
 
+// Pagination configuration
+// Controls how blog posts are paginated on the blog page
+export interface PaginationConfig {
+  enabled: boolean; // Enable pagination (true = limit posts per page, false = show all)
+  postsPerPage: number; // Number of posts to show per page (default: 9 for 3x3 grid)
+  mode: "load-more" | "numbered"; // Pagination style: "load-more" button or numbered pages
+}
+
 // Social link configuration for social footer
 export interface SocialLink {
   platform:
@@ -322,6 +330,9 @@ export interface SiteConfig {
 
   // Image lightbox configuration (optional)
   imageLightbox?: ImageLightboxConfig;
+
+  // Pagination configuration (optional)
+  pagination?: PaginationConfig;
 }
 
 // Default site configuration
@@ -336,12 +347,12 @@ export const siteConfig: SiteConfig = {
   bio: `AI-first markdown publishing platform for SEO and LLM discovery`,
 
   // Font family configuration
-  // Options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono)
-  fontFamily: "sans",
+  // Options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono), "jakarta" (Plus Jakarta Sans)
+  fontFamily: "jakarta",
 
   // Featured section configuration
   // viewMode: 'list' shows bullet list, 'cards' shows card grid with excerpts
-  featuredViewMode: "cards",
+  featuredViewMode: "list",
   // Featured section title (e.g., "Get started:", "Featured", "Popular")
   featuredTitle: "Get started:",
   // Allow users to toggle between list and card views
@@ -553,7 +564,7 @@ export const siteConfig: SiteConfig = {
   // Can work with or without the main footer
   // Use showSocialFooter: false in frontmatter to hide on specific posts/pages
   socialFooter: {
-    enabled: true, // Global toggle for social footer
+    enabled: false, // Global toggle for social footer
     showOnHomepage: true, // Show social footer on homepage
     showOnPosts: true, // Default: show social footer on blog posts
     showOnPages: true, // Default: show social footer on static pages
@@ -632,6 +643,15 @@ export const siteConfig: SiteConfig = {
   // Images open in a full-screen lightbox overlay when clicked
   imageLightbox: {
     enabled: true, // Set to false to disable image lightbox
+  },
+
+  // Pagination configuration
+  // Controls how blog posts are paginated on the blog page
+  // mode: "load-more" = Load More button, "numbered" = Numbered page buttons (1, 2, 3...)
+  pagination: {
+    enabled: true, // Set to false to show all posts at once
+    postsPerPage: 6, // Number of posts per page (3x3 grid)
+    mode: "numbered", // Pagination style: "load-more" or "numbered"
   },
 };
 

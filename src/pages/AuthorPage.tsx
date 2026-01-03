@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import PostList from "../components/PostList";
+import LoadMoreButton from "../components/Pagination/LoadMoreButton";
+import PostCountIndicator from "../components/Pagination/PostCountIndicator";
+import siteConfig from "../config/siteConfig";
 import { ArrowLeft, User } from "lucide-react";
 
 // Local storage key for author page view mode preference
 const AUTHOR_VIEW_MODE_KEY = "author-view-mode";
 
 // Author page component
-// Displays all posts written by a specific author
+// Displays all posts written by a specific author (with pagination)
 export default function AuthorPage() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
   const navigate = useNavigate();
@@ -17,9 +20,36 @@ export default function AuthorPage() {
   // Decode the URL-encoded author slug
   const decodedSlug = authorSlug ? decodeURIComponent(authorSlug) : "";
 
-  // Fetch posts by this author from Convex
-  const posts = useQuery(
-    api.posts.getPostsByAuthor,
+  // Pagination state
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [allPosts, setAllPosts] = useState<any[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Check if pagination is enabled (disabled for author pages for now)
+  const isPaginationEnabled = false; // siteConfig.pagination?.enabled ?? false;
+  const postsPerPage = siteConfig.pagination?.postsPerPage ?? 9;
+
+  // Fetch paginated posts by this author from Convex
+  const paginatedPostsResult = useQuery(
+    api.posts.getPostsByAuthorPaginated,
+    decodedSlug
+      ? cursor
+        ? {
+            authorSlug: decodedSlug,
+            cursor,
+            limit: postsPerPage,
+          }
+        : {
+            authorSlug: decodedSlug,
+            limit: postsPerPage,
+          }
+      : "skip",
+  );
+
+  // Fetch total count of posts for this author
+  const authorPostsCount = useQuery(
+    api.posts.getPostsByAuthorCount,
     decodedSlug ? { authorSlug: decodedSlug } : "skip",
   );
 
@@ -49,6 +79,37 @@ export default function AuthorPage() {
     localStorage.setItem(AUTHOR_VIEW_MODE_KEY, newMode);
   };
 
+  // Update posts list when paginated data loads
+  useEffect(() => {
+    if (paginatedPostsResult) {
+      if (cursor === undefined) {
+        // Initial load - replace all posts
+        setAllPosts(paginatedPostsResult.posts);
+      } else {
+        // Load more - append posts
+        setAllPosts((prev) => [...prev, ...paginatedPostsResult.posts]);
+      }
+      setHasMore(paginatedPostsResult.hasMore);
+      setIsLoadingMore(false);
+    }
+  }, [paginatedPostsResult, cursor]);
+
+  // Reset pagination when author changes
+  useEffect(() => {
+    setCursor(undefined);
+    setAllPosts([]);
+    setIsLoadingMore(false);
+    setHasMore(true);
+  }, [decodedSlug]);
+
+  // Load more posts handler
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore && paginatedPostsResult?.nextCursor) {
+      setIsLoadingMore(true);
+      setCursor(paginatedPostsResult.nextCursor);
+    }
+  }, [isLoadingMore, hasMore, paginatedPostsResult?.nextCursor]);
+
   // Update page title
   useEffect(() => {
     if (authorInfo) {
@@ -62,7 +123,7 @@ export default function AuthorPage() {
   }, [authorInfo, decodedSlug]);
 
   // Handle not found author
-  if (posts !== undefined && posts.length === 0) {
+  if (allPosts.length === 0 && paginatedPostsResult !== undefined) {
     return (
       <div className="author-page">
         <nav className="post-nav">
@@ -112,7 +173,7 @@ export default function AuthorPage() {
             </p>
           </div>
           {/* View toggle button */}
-          {posts !== undefined && posts.length > 0 && (
+          {allPosts.length > 0 && (
             <button
               className="view-toggle-button"
               onClick={toggleViewMode}
@@ -160,8 +221,26 @@ export default function AuthorPage() {
 
       {/* Author posts section */}
       <section className="author-posts">
-        {posts === undefined ? null : (
-          <PostList posts={posts} viewMode={viewMode} />
+        {allPosts.length === 0 ? null : (
+          <>
+            {/* Post count indicator - only show when pagination is enabled */}
+            {isPaginationEnabled && authorPostsCount !== undefined && (
+              <PostCountIndicator
+                currentCount={allPosts.length}
+                totalCount={authorPostsCount}
+                label="posts"
+              />
+            )}
+            <PostList posts={allPosts} viewMode={viewMode} />
+            {/* Load More Button - only show when pagination is enabled */}
+            {isPaginationEnabled && (
+              <LoadMoreButton
+                onClick={handleLoadMore}
+                loading={isLoadingMore}
+                hasMore={hasMore}
+              />
+            )}
+          </>
         )}
       </section>
     </div>
