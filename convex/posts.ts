@@ -703,6 +703,135 @@ export const getPostsByTag = query({
   },
 });
 
+// Get paginated posts filtered by a specific tag
+// Returns posts with pagination metadata
+export const getPostsByTagPaginated = query({
+  args: {
+    tag: v.string(),
+    cursor: v.optional(v.string()), // Date string cursor (ISO format)
+    limit: v.number(),
+  },
+  returns: v.object({
+    posts: v.array(
+      v.object({
+        _id: v.id("posts"),
+        _creationTime: v.number(),
+        slug: v.string(),
+        title: v.string(),
+        description: v.string(),
+        date: v.string(),
+        published: v.boolean(),
+        tags: v.array(v.string()),
+        readTime: v.optional(v.string()),
+        image: v.optional(v.string()),
+        excerpt: v.optional(v.string()),
+        featured: v.optional(v.boolean()),
+        featuredOrder: v.optional(v.number()),
+        authorName: v.optional(v.string()),
+        authorImage: v.optional(v.string()),
+      }),
+    ),
+    nextCursor: v.optional(v.string()),
+    hasMore: v.boolean(),
+    totalCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    // Fetch all published posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_published", (q) => q.eq("published", true))
+      .collect();
+
+    // Filter posts that have the specified tag and are not unlisted
+    const filteredPosts = posts.filter(
+      (post) =>
+        !post.unlisted &&
+        post.tags.some((t) => t.toLowerCase() === args.tag.toLowerCase()),
+    );
+
+    // Sort by date descending
+    const sortedPosts = filteredPosts.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    // Apply cursor pagination
+    let startIndex = 0;
+    if (args.cursor) {
+      startIndex = sortedPosts.findIndex(
+        (post) => post.date === args.cursor,
+      );
+      if (startIndex === -1) {
+        // Cursor not found, start from beginning
+        startIndex = 0;
+      } else {
+        // Start after the cursor
+        startIndex = startIndex + 1;
+      }
+    }
+
+    // Get the page of posts
+    const endIndex = startIndex + args.limit;
+    const paginatedPosts = sortedPosts.slice(startIndex, endIndex);
+
+    // Determine if there are more posts
+    const hasMore = endIndex < sortedPosts.length;
+
+    // Set next cursor to the date of the last post in this batch
+    let nextCursor;
+    if (hasMore && paginatedPosts.length > 0) {
+      nextCursor = paginatedPosts[paginatedPosts.length - 1].date;
+    }
+
+    // Return posts without content for list view
+    return {
+      posts: paginatedPosts.map((post) => ({
+        _id: post._id,
+        _creationTime: post._creationTime,
+        slug: post.slug,
+        title: post.title,
+        description: post.description,
+        date: post.date,
+        published: post.published,
+        tags: post.tags,
+        readTime: post.readTime,
+        image: post.image,
+        excerpt: post.excerpt,
+        featured: post.featured,
+        featuredOrder: post.featuredOrder,
+        authorName: post.authorName,
+        authorImage: post.authorImage,
+      })),
+      nextCursor,
+      hasMore,
+      totalCount: sortedPosts.length,
+    };
+  },
+});
+
+// Get count of posts for a specific tag
+export const getPostsByTagCount = query({
+  args: {
+    tag: v.string(),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    // Fetch all published posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_published", (q) => q.eq("published", true))
+      .collect();
+
+    // Filter and count posts with the specified tag (excluding unlisted)
+    const count = posts.filter(
+      (post) =>
+        !post.unlisted &&
+        post.tags.some((t) => t.toLowerCase() === args.tag.toLowerCase()),
+    ).length;
+
+    return count;
+  },
+});
+
 // Get related posts that share tags with the current post
 export const getRelatedPosts = query({
   args: {
@@ -869,6 +998,358 @@ export const getPostsByAuthor = query({
     }));
   },
 });
+
+// Get paginated posts filtered by author slug
+// Returns posts with pagination metadata
+export const getPostsByAuthorPaginated = query({
+  args: {
+    authorSlug: v.string(),
+    cursor: v.optional(v.string()), // Date string cursor (ISO format)
+    limit: v.number(),
+  },
+  returns: v.object({
+    posts: v.array(
+      v.object({
+        _id: v.id("posts"),
+        _creationTime: v.number(),
+        slug: v.string(),
+        title: v.string(),
+        description: v.string(),
+        date: v.string(),
+        published: v.boolean(),
+        tags: v.array(v.string()),
+        readTime: v.optional(v.string()),
+        image: v.optional(v.string()),
+        excerpt: v.optional(v.string()),
+        featured: v.optional(v.boolean()),
+        featuredOrder: v.optional(v.number()),
+        authorName: v.optional(v.string()),
+        authorImage: v.optional(v.string()),
+      }),
+    ),
+    nextCursor: v.optional(v.string()),
+    hasMore: v.boolean(),
+    totalCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    // Fetch all published posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_published", (q) => q.eq("published", true))
+      .collect();
+
+    // Filter posts by author slug match and not unlisted
+    const filteredPosts = posts.filter((post) => {
+      if (!post.authorName || post.unlisted) return false;
+      const slug = post.authorName.toLowerCase().replace(/\s+/g, "-");
+      return slug === args.authorSlug;
+    });
+
+    // Sort by date descending
+    const sortedPosts = filteredPosts.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    // Apply cursor pagination
+    let startIndex = 0;
+    if (args.cursor) {
+      startIndex = sortedPosts.findIndex(
+        (post) => post.date === args.cursor,
+      );
+      if (startIndex === -1) {
+        // Cursor not found, start from beginning
+        startIndex = 0;
+      } else {
+        // Start after the cursor
+        startIndex = startIndex + 1;
+      }
+    }
+
+    // Get the page of posts
+    const endIndex = startIndex + args.limit;
+    const paginatedPosts = sortedPosts.slice(startIndex, endIndex);
+
+    // Determine if there are more posts
+    const hasMore = endIndex < sortedPosts.length;
+
+    // Set next cursor to the date of the last post in this batch
+    let nextCursor;
+    if (hasMore && paginatedPosts.length > 0) {
+      nextCursor = paginatedPosts[paginatedPosts.length - 1].date;
+    }
+
+    // Return posts without content for list view
+    return {
+      posts: paginatedPosts.map((post) => ({
+        _id: post._id,
+        _creationTime: post._creationTime,
+        slug: post.slug,
+        title: post.title,
+        description: post.description,
+        date: post.date,
+        published: post.published,
+        tags: post.tags,
+        readTime: post.readTime,
+        image: post.image,
+        excerpt: post.excerpt,
+        featured: post.featured,
+        featuredOrder: post.featuredOrder,
+        authorName: post.authorName,
+        authorImage: post.authorImage,
+      })),
+      nextCursor,
+      hasMore,
+      totalCount: sortedPosts.length,
+    };
+  },
+});
+
+// Get count of posts for a specific author
+export const getPostsByAuthorCount = query({
+  args: {
+    authorSlug: v.string(),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    // Fetch all published posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_published", (q) => q.eq("published", true))
+      .collect();
+
+    // Filter and count posts by author slug (excluding unlisted)
+    const count = posts.filter((post) => {
+      if (!post.authorName || post.unlisted) return false;
+      const slug = post.authorName.toLowerCase().replace(/\s+/g, "-");
+      return slug === args.authorSlug;
+    }).length;
+
+    return count;
+  },
+});
+
+// Get paginated posts for the blog page (cursor-based pagination)
+// Returns regular (non-blogFeatured) posts with pagination metadata
+export const getPaginatedPosts = query({
+  args: {
+    cursor: v.optional(v.string()), // Date string cursor (ISO format)
+    limit: v.number(),
+    excludeUnlisted: v.optional(v.boolean()), // Filter out unlisted posts (default: true)
+  },
+  returns: v.object({
+    posts: v.array(
+      v.object({
+        _id: v.id("posts"),
+        _creationTime: v.number(),
+        slug: v.string(),
+        title: v.string(),
+        description: v.string(),
+        date: v.string(),
+        published: v.boolean(),
+        tags: v.array(v.string()),
+        readTime: v.optional(v.string()),
+        image: v.optional(v.string()),
+        excerpt: v.optional(v.string()),
+        featured: v.optional(v.boolean()),
+        featuredOrder: v.optional(v.number()),
+        authorName: v.optional(v.string()),
+        authorImage: v.optional(v.string()),
+        layout: v.optional(v.string()),
+        rightSidebar: v.optional(v.boolean()),
+        showFooter: v.optional(v.boolean()),
+        blogFeatured: v.optional(v.boolean()),
+      }),
+    ),
+    nextCursor: v.optional(v.string()),
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const excludeUnlisted = args.excludeUnlisted !== false; // Default to true
+
+    // Fetch all published posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_published", (q) => q.eq("published", true))
+      .collect();
+
+    // Filter out unlisted posts if specified
+    let filteredPosts = posts;
+    if (excludeUnlisted) {
+      filteredPosts = posts.filter((p) => !p.unlisted);
+    }
+
+    // Filter out blogFeatured posts (shown separately in hero/featured row)
+    const regularPosts = filteredPosts.filter((p) => !p.blogFeatured);
+
+    // Sort by date descending
+    const sortedPosts = regularPosts.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    // Apply cursor pagination
+    let startIndex = 0;
+    if (args.cursor) {
+      startIndex = sortedPosts.findIndex(
+        (post) => post.date === args.cursor,
+      );
+      if (startIndex === -1) {
+        // Cursor not found, start from beginning
+        startIndex = 0;
+      } else {
+        // Start after the cursor
+        startIndex = startIndex + 1;
+      }
+    }
+
+    // Get the page of posts
+    const endIndex = startIndex + args.limit;
+    const paginatedPosts = sortedPosts.slice(startIndex, endIndex);
+
+    // Determine if there are more posts
+    const hasMore = endIndex < sortedPosts.length;
+
+    // Set next cursor to the date of the last post in this batch
+    let nextCursor;
+    if (hasMore && paginatedPosts.length > 0) {
+      nextCursor = paginatedPosts[paginatedPosts.length - 1].date;
+    }
+
+    // Return posts without content for list view
+    return {
+      posts: paginatedPosts.map((post) => ({
+        _id: post._id,
+        _creationTime: post._creationTime,
+        slug: post.slug,
+        title: post.title,
+        description: post.description,
+        date: post.date,
+        published: post.published,
+        tags: post.tags,
+        readTime: post.readTime,
+        image: post.image,
+        excerpt: post.excerpt,
+        featured: post.featured,
+        featuredOrder: post.featuredOrder,
+        authorName: post.authorName,
+        authorImage: post.authorImage,
+        layout: post.layout,
+        rightSidebar: post.rightSidebar,
+        showFooter: post.showFooter,
+        blogFeatured: post.blogFeatured,
+      })),
+      nextCursor,
+      hasMore,
+    };
+  },
+});
+
+// Get count of regular (non-blogFeatured) published posts
+// Used for "Showing X of Y posts" indicator
+export const getRegularPostsCount = query({
+  args: {
+    excludeUnlisted: v.optional(v.boolean()), // Filter out unlisted posts (default: true)
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const excludeUnlisted = args.excludeUnlisted !== false; // Default to true
+
+    // Fetch all published posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_published", (q) => q.eq("published", true))
+      .collect();
+
+    // Filter out unlisted and blogFeatured posts
+    const regularPosts = posts.filter((p) => {
+      if (excludeUnlisted && p.unlisted) return false;
+      if (p.blogFeatured) return false;
+      return true;
+    });
+
+    return regularPosts.length;
+  },
+});
+
+// Get paginated posts using offset-based pagination (for numbered pagination)
+// Returns a specific page of regular (non-blogFeatured) posts
+export const getPostsByPage = query({
+  args: {
+    offset: v.number(), // Number of posts to skip (for page calculation)
+    limit: v.number(), // Number of posts to return
+    excludeUnlisted: v.optional(v.boolean()), // Filter out unlisted posts (default: true)
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("posts"),
+      _creationTime: v.number(),
+      slug: v.string(),
+      title: v.string(),
+      description: v.string(),
+      date: v.string(),
+      published: v.boolean(),
+      tags: v.array(v.string()),
+      readTime: v.optional(v.string()),
+      image: v.optional(v.string()),
+      excerpt: v.optional(v.string()),
+      featured: v.optional(v.boolean()),
+      featuredOrder: v.optional(v.number()),
+      authorName: v.optional(v.string()),
+      authorImage: v.optional(v.string()),
+      layout: v.optional(v.string()),
+      rightSidebar: v.optional(v.boolean()),
+      showFooter: v.optional(v.boolean()),
+      blogFeatured: v.optional(v.boolean()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const excludeUnlisted = args.excludeUnlisted !== false; // Default to true
+
+    // Fetch all published posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_published", (q) => q.eq("published", true))
+      .collect();
+
+    // Filter out unlisted and blogFeatured posts
+    const regularPosts = posts.filter((p) => {
+      if (excludeUnlisted && p.unlisted) return false;
+      if (p.blogFeatured) return false;
+      return true;
+    });
+
+    // Sort by date descending
+    const sortedPosts = regularPosts.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    // Apply offset and limit (for numbered pagination)
+    const paginatedPosts = sortedPosts.slice(args.offset, args.offset + args.limit);
+
+    // Return posts without content for list view
+    return paginatedPosts.map((post) => ({
+      _id: post._id,
+      _creationTime: post._creationTime,
+      slug: post.slug,
+      title: post.title,
+      description: post.description,
+      date: post.date,
+      published: post.published,
+      tags: post.tags,
+      readTime: post.readTime,
+      image: post.image,
+      excerpt: post.excerpt,
+      featured: post.featured,
+      featuredOrder: post.featuredOrder,
+      authorName: post.authorName,
+      authorImage: post.authorImage,
+      layout: post.layout,
+      rightSidebar: post.rightSidebar,
+      showFooter: post.showFooter,
+      blogFeatured: post.blogFeatured,
+    }));
+  },
+});
+
 // Create or update a single post from the Write page
 export const createOrUpdatePost = mutation({
   args: {

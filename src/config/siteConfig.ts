@@ -203,6 +203,14 @@ export interface ImageLightboxConfig {
   enabled: boolean; // Global toggle for image lightbox feature
 }
 
+// Pagination configuration
+// Controls how blog posts are paginated on the blog page
+export interface PaginationConfig {
+  enabled: boolean; // Enable pagination (true = limit posts per page, false = show all)
+  postsPerPage: number; // Number of posts to show per page (default: 9 for 3x3 grid)
+  mode: "load-more" | "numbered"; // Pagination style: "load-more" button or numbered pages
+}
+
 // Social link configuration for social footer
 export interface SocialLink {
   platform:
@@ -322,6 +330,9 @@ export interface SiteConfig {
 
   // Image lightbox configuration (optional)
   imageLightbox?: ImageLightboxConfig;
+
+  // Pagination configuration (optional)
+  pagination?: PaginationConfig;
 }
 
 // Default site configuration
@@ -632,6 +643,15 @@ export const siteConfig: SiteConfig = {
   // Images open in a full-screen lightbox overlay when clicked
   imageLightbox: {
     enabled: true, // Set to false to disable image lightbox
+  },
+
+  // Pagination configuration
+  // Controls how blog posts are paginated on the blog page
+  // mode: "load-more" = Load More button, "numbered" = Numbered page buttons (1, 2, 3...)
+  pagination: {
+    enabled: true, // Set to false to show all posts at once
+    postsPerPage: 6, // Number of posts per page (3x3 grid)
+    mode: "numbered", // Pagination style: "load-more" or "numbered"
   },
 };
 

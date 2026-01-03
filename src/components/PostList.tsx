@@ -55,33 +55,21 @@ export default function PostList({
       <div className={cardGridClass}>
         {sortedPosts.map((post) => (
           <Link key={post._id} to={`/${post.slug}`} className="post-card">
-            {/* Thumbnail image displayed as square using object-fit: cover */}
-            {post.image && (
-              <div className="post-card-image-wrapper">
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="post-card-image"
-                  loading="lazy"
-                />
-              </div>
-            )}
             <div className="post-card-content">
+              {/* Date at top */}
+              <div className="post-card-date">
+                {format(parseISO(post.date), "MMM d, yyyy").toUpperCase()}
+              </div>
+
+              {/* Title below date */}
               <h3 className="post-card-title">{post.title}</h3>
-              {/* Only show excerpt if showExcerpts is true */}
-              {showExcerpts && (post.excerpt || post.description) && (
+
+              {/* Description/excerpt below title */}
+              {(post.excerpt || post.description) && (
                 <p className="post-card-excerpt">
                   {post.excerpt || post.description}
                 </p>
               )}
-              <div className="post-card-meta">
-                {post.readTime && (
-                  <span className="post-card-read-time">{post.readTime}</span>
-                )}
-                <span className="post-card-date">
-                  {format(parseISO(post.date), "MMMM d, yyyy")}
-                </span>
-              </div>
             </div>
           </Link>
         ))}

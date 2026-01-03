@@ -155,7 +155,7 @@ function HeadingItem({
             isActive ? "active" : ""
           }`}
         >
-          {node.text}
+          {node.text.replace('**', "").trim()}
         </a>
       </div>
       {hasChildren && isExpanded && (

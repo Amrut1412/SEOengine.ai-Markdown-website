@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -7,6 +8,9 @@ import BlogHeroCard from "../components/BlogHeroCard";
 import Footer from "../components/Footer";
 import SocialFooter from "../components/SocialFooter";
 import NewsletterSignup from "../components/NewsletterSignup";
+import LoadMoreButton from "../components/Pagination/LoadMoreButton";
+import NumberedPagination from "../components/Pagination/NumberedPagination";
+import PostCountIndicator from "../components/Pagination/PostCountIndicator";
 import siteConfig from "../config/siteConfig";
 import { ArrowLeft } from "lucide-react";
 
@@ -17,13 +21,52 @@ const BLOG_VIEW_MODE_KEY = "blog-view-mode";
 // Displays all published posts with featured blog posts layout:
 // 1. Hero: first blogFeatured post (large card)
 // 2. Featured row: remaining blogFeatured posts (2 columns)
-// 3. Regular posts: non-featured posts (3 columns)
+// 3. Regular posts: non-featured posts (3 columns, paginated)
 // Controlled by siteConfig.blogPage and siteConfig.postsDisplay settings
 export default function Blog() {
   const navigate = useNavigate();
 
-  // Fetch all published posts from Convex
-  const posts = useQuery(api.posts.getAllPosts);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [allRegularPosts, setAllRegularPosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check if pagination is enabled and get mode
+  const isPaginationEnabled = siteConfig.pagination?.enabled ?? false;
+  const paginationMode = siteConfig.pagination?.mode ?? "load-more";
+  const postsPerPage = siteConfig.pagination?.postsPerPage ?? 9;
+
+  // Calculate skip for offset-based pagination
+  const skipAmount = (currentPage - 1) * postsPerPage;
+
+  // Fetch paginated regular posts (non-blogFeatured)
+  // Use different queries based on pagination mode
+  const paginatedPostsResult = useQuery(
+    paginationMode === "numbered" ? api.posts.getPostsByPage : api.posts.getPaginatedPosts,
+    paginationMode === "numbered"
+      ? {
+          offset: skipAmount,
+          limit: postsPerPage,
+          excludeUnlisted: true,
+        }
+      : {
+          limit: postsPerPage,
+          cursor: undefined,
+          excludeUnlisted: true,
+        },
+  );
+
+  // For load-more mode, we also need hasMore
+  const cursorBasedResult = useQuery(
+    api.posts.getPaginatedPosts,
+    paginationMode === "load-more"
+      ? {
+          limit: postsPerPage,
+          cursor: undefined,
+          excludeUnlisted: true,
+        }
+      : "skip",
+  );
 
   // Fetch all blog featured posts for hero + featured row
   const blogFeaturedPosts = useQuery(api.posts.getBlogFeaturedPosts);
@@ -31,10 +74,55 @@ export default function Blog() {
   // Fetch footer content from Convex (synced via markdown)
   const footerPage = useQuery(api.pages.getPageBySlug, { slug: "footer" });
 
+  // Fetch total count of regular posts for indicator
+  const totalRegularPostsCount = useQuery(api.posts.getRegularPostsCount, {
+    excludeUnlisted: true,
+  });
+
+  // Calculate total pages
+  const totalPages = totalRegularPostsCount
+    ? Math.ceil(totalRegularPostsCount / postsPerPage)
+    : 1;
+
   // State for view mode toggle (list or cards)
   const [viewMode, setViewMode] = useState<"list" | "cards">(
     siteConfig.blogPage.viewMode,
   );
+
+  // Track if we've loaded to prevent double-loading
+  const isLoadingRef = useRef(false);
+
+  // Update posts list when paginated data loads
+  useEffect(() => {
+    if (!isLoadingRef.current) {
+      isLoadingRef.current = true;
+
+      if (paginationMode === "numbered" && paginatedPostsResult) {
+        // For numbered pagination, result is directly an array
+        // Type guard to ensure it's an array (not the object type from getPaginatedPosts)
+        const posts = Array.isArray(paginatedPostsResult)
+          ? paginatedPostsResult
+          : "posts" in paginatedPostsResult
+            ? paginatedPostsResult.posts
+            : [];
+        setAllRegularPosts(posts);
+        setIsLoading(false);
+      } else if (paginationMode === "load-more" && cursorBasedResult?.posts) {
+        // For load-more mode, result is an object with posts, nextCursor, hasMore
+        if (currentPage === 1) {
+          setAllRegularPosts(cursorBasedResult.posts);
+        } else {
+          setAllRegularPosts((prev) => [...prev, ...cursorBasedResult.posts]);
+        }
+        setIsLoading(false);
+      }
+
+      // Reset loading flag after a short delay
+      setTimeout(() => {
+        isLoadingRef.current = false;
+      }, 100);
+    }
+  }, [paginatedPostsResult, cursorBasedResult, currentPage, paginationMode]);
 
   // Load saved view mode preference from localStorage
   useEffect(() => {
@@ -50,6 +138,22 @@ export default function Blog() {
     setViewMode(newMode);
     localStorage.setItem(BLOG_VIEW_MODE_KEY, newMode);
   };
+
+  // Load more posts handler (for load-more mode)
+  const handleLoadMore = useCallback(() => {
+    if (!isLoading && cursorBasedResult?.nextCursor) {
+      setIsLoading(true);
+      setCurrentPage((prev) => prev + 1);
+    }
+  }, [isLoading, cursorBasedResult?.nextCursor]);
+
+  // Page change handler (for numbered pagination)
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    setIsLoading(true);
+    // Scroll to top smoothly
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   // Check if posts should be shown on blog page
   const showPosts = siteConfig.postsDisplay.showOnBlogPage;
@@ -71,8 +175,8 @@ export default function Blog() {
   // Get slugs of all featured posts for filtering
   const featuredSlugs = new Set(blogFeaturedPosts?.map((p) => p.slug) || []);
 
-  // Filter out all featured posts from regular posts list
-  const regularPosts = posts?.filter((post) => !featuredSlugs.has(post.slug));
+  // Regular posts are now from pagination (already filtered by query)
+  const regularPosts = allRegularPosts;
 
   // Determine if we have featured content to show
   const hasFeaturedContent = heroPost !== null;
@@ -108,8 +212,8 @@ export default function Blog() {
             {/* View toggle button */}
             {showPosts &&
               siteConfig.blogPage.showViewToggle &&
-              posts !== undefined &&
-              posts.length > 0 && (
+              regularPosts !== undefined &&
+              regularPosts.length > 0 && (
                 <button
                   className="view-toggle-button"
                   onClick={toggleViewMode}
@@ -190,12 +294,37 @@ export default function Blog() {
                 <p className="no-posts">No posts yet. Check back soon!</p>
               )
             ) : (
-              <PostList
-                posts={regularPosts}
-                viewMode={viewMode}
-                columns={3}
-                showExcerpts={false}
-              />
+              <>
+                <PostList
+                  posts={regularPosts}
+                  viewMode={viewMode}
+                  columns={3}
+                  showExcerpts={false}
+                />
+                {/* Post count indicator - only show when pagination is enabled */}
+                {isPaginationEnabled && totalRegularPostsCount !== undefined && (
+                  <PostCountIndicator
+                    currentCount={regularPosts.length}
+                    totalCount={totalRegularPostsCount}
+                    label="posts"
+                  />
+                )}
+                {/* Pagination - show based on mode */}
+                {isPaginationEnabled && paginationMode === "load-more" && cursorBasedResult && (
+                  <LoadMoreButton
+                    onClick={handleLoadMore}
+                    loading={isLoading}
+                    hasMore={cursorBasedResult.hasMore}
+                  />
+                )}
+                {isPaginationEnabled && paginationMode === "numbered" && totalPages > 1 && (
+                  <NumberedPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </>
             )}
           </section>
         )}
