@@ -77,8 +77,8 @@ export interface GitHubRepoConfig {
 
 // Font family configuration
 // Controls the default font family for the entire site
-// default font family options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono)
-export type FontFamily = "serif" | "sans" | "monospace";
+// default font family options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono), "jakarta" (Plus Jakarta Sans)
+export type FontFamily = "serif" | "sans" | "monospace" | "jakarta";
 
 // Right sidebar configuration
 // Shows CopyPageDropdown in a right sidebar on posts/pages at 1135px+ viewport width
@@ -336,12 +336,12 @@ export const siteConfig: SiteConfig = {
   bio: `AI-first markdown publishing platform for SEO and LLM discovery`,
 
   // Font family configuration
-  // Options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono)
-  fontFamily: "sans",
+  // Options: "serif" (New York), "sans" (system fonts), "monospace" (IBM Plex Mono), "jakarta" (Plus Jakarta Sans)
+  fontFamily: "jakarta",
 
   // Featured section configuration
   // viewMode: 'list' shows bullet list, 'cards' shows card grid with excerpts
-  featuredViewMode: "cards",
+  featuredViewMode: "list",
   // Featured section title (e.g., "Get started:", "Featured", "Popular")
   featuredTitle: "Get started:",
   // Allow users to toggle between list and card views
@@ -553,7 +553,7 @@ export const siteConfig: SiteConfig = {
   // Can work with or without the main footer
   // Use showSocialFooter: false in frontmatter to hide on specific posts/pages
   socialFooter: {
-    enabled: true, // Global toggle for social footer
+    enabled: false, // Global toggle for social footer
     showOnHomepage: true, // Show social footer on homepage
     showOnPosts: true, // Default: show social footer on blog posts
     showOnPages: true, // Default: show social footer on static pages

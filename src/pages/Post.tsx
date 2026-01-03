@@ -223,6 +223,7 @@ export default function Post({
     const hasOnlyRightSidebar = hasRightSidebar && !hasLeftSidebar;
 
     return (
+      <>
       <div className={`post-page ${hasAnySidebar ? "post-page-with-sidebar" : ""}`}>
         <nav className={`post-nav ${hasAnySidebar ? "post-nav-with-sidebar" : ""}`}>
           {/* Hide back-button when sidebars are enabled or when used as homepage */}
@@ -321,11 +322,7 @@ export default function Post({
                 <NewsletterSignup source="post" postSlug={page.slug} />
               )}
 
-            {/* Footer - shown inside article at bottom for pages */}
-            {siteConfig.footer.enabled && 
-             (page.showFooter !== undefined ? page.showFooter : siteConfig.footer.showOnPages) && (
-              <Footer content={page.footer} />
-            )}
+          
 
             {/* Social footer - shown inside article at bottom for pages */}
             {siteConfig.socialFooter?.enabled && 
@@ -344,6 +341,9 @@ export default function Post({
           )}
         </div>
       </div>
+      
+      <Footer />
+      </>
     );
   }
 

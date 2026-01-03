@@ -59,7 +59,7 @@ function App() {
           {useCustomHomepage && (
             <Route
               path={siteConfig.homepage.originalHomeRoute || "/home"}
-              element={<Home />}
+              element={<Blog />}
             />
           )}
           {/* Stats page route - only enabled when statsPage.enabled is true */}
