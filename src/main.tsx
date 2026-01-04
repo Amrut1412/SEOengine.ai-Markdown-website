@@ -7,6 +7,7 @@ import { FontProvider } from "./context/FontContext";
 import { ChakraProviderWrapper } from "./providers/ChakraProvider";
 import { isWorkOSConfigured } from "./utils/workos";
 import "./styles/global.css";
+import "./styles/responsive.css";
 
 // Disable browser scroll restoration to prevent scroll position being restored on navigation
 if ("scrollRestoration" in window.history) {
